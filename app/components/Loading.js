@@ -1,23 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {StyleSheet, View, Text, ActivityIndicator, Modal} from 'react-native';
 
 export default function Loading(props) {
   const {isVisible, text, counter, errors, total, isSending} = props;
-  // const [counter, setCounter] = useState(0)
-
-//   useEffect(() => {
-//     var timerID = setInterval( () => {
-//       if (counter <= messages.length) {
-//         setCounter( currentCounter => currentCounter + 1 );
-//       } else {
-//         setCounter(0)
-//       }
-//     }, 5000 );
-//     return function cleanup() {
-//       //console.log('Loading: ' + counter)
-//         clearInterval(timerID);
-//       };
-//    });
 
   return (
     <Modal
