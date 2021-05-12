@@ -7,26 +7,32 @@ import {
   TouchableOpacity,
   Text,
   TextInput,
-  Alert,
+  Alert
 } from 'react-native';
 import {check, request, RESULTS, PERMISSIONS} from 'react-native-permissions';
 import { PermissionsAndroid } from 'react-native';
 import Contacts from 'react-native-contacts';
 import SmsAndroid from 'react-native-get-sms-android';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
-import { faCaretDown, faCaretUp, faFilter, faPlus, faStopwatch } from '@fortawesome/free-solid-svg-icons'
+import { faCaretDown, faCaretUp, faFilter, faPlus, faStopwatch, faTrash } from '@fortawesome/free-solid-svg-icons'
 
 import Loading from './components/Loading';
+import ContactsRecipients from './components/ContactsRecipients';
 import GlobalContext from './context/globalContext';
 
 export default function Home() {
   const globalContext = useContext(GlobalContext);
-  const [phone, setPhone] = useState('');
   const [minFilter, setMinFilter] = useState('');
   const [maxFilter, setMaxFilter] = useState('');
+  const [timeInterval, setTimeInterval] = useState('0');
+  const [blocksDivided, setBlocksDivided] = useState('1');
+  const [blocksInterval, setBlocksInterval] = useState('0');
+  const [isBlocksDivided, setIsBlocksDivided] = useState(false);
+
+  const [phone, setPhone] = useState('');
+  const [manualContacts, setManualContacts] = useState([]);
   const [message, setMessage] = useState('');
   const [moreOptions, setMoreOptions] = useState(false);
-  const [timeInterval, setTimeInterval] = useState('0');
   const [isSetTime, setIsSetTime] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingText, setLoadingText] = useState('Cargando...');
@@ -73,6 +79,7 @@ export default function Home() {
       }
     } catch (err) {
       console.log(err);
+      Alert.alert('No tienes permisos de SMS','No se han otorgado permisos para acceder al envío y lectura de SMS del dispositivo.');
     }
   };
 
@@ -95,8 +102,8 @@ export default function Home() {
                 }
               }
             }
-            setIsLoading(false);
             await globalContext.setContacts(phonesArray);
+            setIsLoading(false);
             setMoreOptions(false);
           }
         }
@@ -105,7 +112,6 @@ export default function Home() {
       console.log(err);
       setIsLoading(false);
     }
-    await clearData()
   }
 
   const calculateTime = () => {
@@ -132,6 +138,28 @@ export default function Home() {
     setTimeInterval(time)
   }
 
+  const handleBlocksInterval = (time) => {
+    setIsBlocksDivided(false);
+    let interval = parseInt(time);
+    if (time == '' || time.length < 1) {
+      setBlocksInterval('0')
+    } else if (!Number.isInteger(interval)) {
+      time = '0';
+    }
+    setBlocksInterval(time)
+  }
+
+  const handleBlocksDivided = (blocks) => {
+    setIsBlocksDivided(false);
+    let blocksNumber = parseInt(blocks);
+    if (blocks == '' || blocks.length < 1) {
+      setBlocksDivided('1')
+    } else if (!Number.isInteger(blocksNumber)) {
+      blocks = '1';
+    }
+    setBlocksDivided(blocks)
+  }
+
   const validatePhoneNumber = (number) => {
     const regex1 = /^\(?(\d{3})\)?[- ]?(\d{3})[- ]?(\d{4})$/;
     const regex2 = /^\(?(\d{3})\)?[- ]?(\d{4})[- ]?(\d{3})$/;
@@ -145,8 +173,8 @@ export default function Home() {
   }
 
   const onAddPhoneNumber = async () => {
-    await clearData()
-    const tempArray = globalContext.contacts;
+    let contactsTemp = manualContacts;
+    let tempArray = globalContext.contacts;
     if(phone.length < 10) {
         Alert.alert('El número debe tener 10 dígitos.')
         return false
@@ -155,14 +183,35 @@ export default function Home() {
         return false
     } else {
         tempArray.push(phone);
+        contactsTemp.push(phone)
         globalContext.setContacts(tempArray);
+        setManualContacts(contactsTemp);
         setPhone('');
         return true
     }
   }
 
+  const onDropPhoneNumber = async (number) => {
+    let contactsTemp = manualContacts;
+    let tempArray = globalContext.contacts;
+    const result1 = await tempArray.filter((contact) => {
+      if (contact !== number.contact) {
+        return true;
+      }}
+      )
+    const result2 = await contactsTemp.filter((contact) => {
+      if (contact !== number.contact) {
+        return true;
+      }}
+      )
+    globalContext.setContacts(result1);
+    setManualContacts(result2)
+  }
+
   const onFilter = () => {
-    if (minFilter > maxFilter || minFilter > globalContext.contacts.length || maxFilter > globalContext.contacts.length) {
+    let minFilterNumber = parseInt(minFilter);
+    let maxFilterNumber = parseInt(maxFilter);
+    if (minFilterNumber > maxFilterNumber || minFilterNumber > globalContext.contacts.length || maxFilterNumber > globalContext.contacts.length) {
       Alert.alert('Filtros erroneos', 'Ingresa un número menor')
     } else {
       let tempArray = globalContext.contacts;
@@ -210,11 +259,12 @@ export default function Home() {
 
   const sendSMS = async () => {
     let increment = 0;
-    const interval = 1000 * parseInt(timeInterval);
+    let interval = 1000 * parseInt(timeInterval);
     setIsFinished(false);
     setIsSending(true);
     setLoadingText('Enviando...');
     setIsLoading(true);
+
     var myLoop = setInterval(async function(){
       await SmsAndroid.autoSend(
         globalContext.contacts[increment],
@@ -235,15 +285,19 @@ export default function Home() {
         setIsFinished(true);
       }
       increment++;
-    },interval);
+    }, interval);
   };
 
   const clearData = async () => {
-    await setCounter(0);
-    await setErrorsCounter(0);
-    await setIsFinished(false);
-    await setIsSending(false);
-    await setIsSetTime(false);
+    await globalContext.setContacts([]);
+    setCounter(0);
+    setErrorsCounter(0);
+    setMinFilter('');
+    setMaxFilter('');
+    setManualContacts([]);
+    setIsFinished(false);
+    setIsSending(false);
+    setIsSetTime(false);
   }
 
   return (
@@ -251,43 +305,32 @@ export default function Home() {
       <View style={styles.form}>
         <Text style={styles.title}>ENVÍO MASIVO DE MENSAJES SMS</Text>
         <ScrollView>
-        <TouchableOpacity style={styles.buton} onPress={() => {setIsLoading(true); setLoadingText('Leyendo contactos...'); getContacts()}}>
+        <TouchableOpacity style={styles.buton} onPress={() => {setIsLoading(true); setLoadingText('Leyendo contactos...'); clearData(); getContacts(); }}>
           <Text style={styles.textButon}>Leer contactos del teléfono</Text>
         </TouchableOpacity>
 
-        <View style={[styles.row, {justifyContent: 'flex-start'}]}>
-          <Text style={styles.label}>{moreOptions ? 'Menos' : 'Más'} opciones</Text>
-          <TouchableOpacity onPress={() => setMoreOptions(!moreOptions)}>
-            <FontAwesomeIcon icon={ moreOptions ? faCaretUp : faCaretDown } size={30}/>
+        <View style={styles.row}>
+          <View style={[styles.row, {justifyContent: 'flex-start'}]}>
+            <Text style={styles.label}>{moreOptions ? 'Menos' : 'Más'} opciones</Text>
+            <TouchableOpacity onPress={() => setMoreOptions(!moreOptions)}>
+              <FontAwesomeIcon icon={ moreOptions ? faCaretUp : faCaretDown } size={30}/>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.buton} onPress={() => {clearData(); setMessage('');}}>
+            <Text style={styles.textButon}>Limpiar datos</Text>
           </TouchableOpacity>
         </View>
         {
           moreOptions &&
           <>
-          <Text style={styles.label2}>Agregar número a la lista:</Text>
-          <View style={styles.row}>
-            <TextInput
-              style={styles.contactsInput}
-              maxLength={15}
-              placeholder={'Phone number'}
-              onChangeText={setPhone}
-              keyboardType='phone-pad'
-              value={phone}
-            />
-            <TouchableOpacity style={styles.addButon} onPress={() => onAddPhoneNumber()}>
-                <FontAwesomeIcon icon={ faPlus } size={20} color={'#fff'}/>
-            </TouchableOpacity>
-          </View>
-          
-          
           <View style={styles.row}>
           <Text style={styles.label2}>Filtrar del:</Text>
             <TextInput
               style={styles.filterInput}
               placeholder={'1'}
               maxLength={5}
-              onChangeText={setMinFilter}
-              keyboardType='phone-pad'
+              onChangeText={(text) => setMinFilter(text)}
+              keyboardType='number-pad'
               value={minFilter}
             />
             <Text style={styles.label2}>al:</Text>
@@ -295,39 +338,98 @@ export default function Home() {
               style={styles.filterInput}
               placeholder={'999'}
               maxLength={5}
-              onChangeText={setMaxFilter}
-              keyboardType='phone-pad'
+              onChangeText={(text) => setMaxFilter(text)}
+              keyboardType='number-pad'
               value={maxFilter}
             />
             <TouchableOpacity style={styles.addButon} onPress={() => onFilter()}>
                 <FontAwesomeIcon icon={ faFilter } size={18} color={'#fff'}/>
             </TouchableOpacity>
           </View>
-
+          
           <View style={styles.row}>
-          <Text style={[styles.label2, {flex: 1}]}>Intervalo en segundos entre cada envío:</Text>
+            <Text style={[styles.label2, {flex: 1}]}>Intervalo en segundos entre cada mensaje:</Text>
             <TextInput
               style={styles.filterInput}
               placeholder={'1'}
               maxLength={2}
               onChangeText={(text) => handleTimeInterval(text)}
-              keyboardType='phone-pad'
+              keyboardType='number-pad'
               value={timeInterval}
             />
             <TouchableOpacity style={styles.addButon} onPress={() => setIsSetTime(true)}>
                 <FontAwesomeIcon icon={ faStopwatch } size={20} color={'#fff'}/>
             </TouchableOpacity>
           </View>
+
+         {/*  <View style={styles.row}>
+            <Text style={[styles.label2, {flex: 1}]}>Dividir los envíos en bloques:</Text>
+            <TextInput
+              style={styles.filterInput}
+              placeholder={'1'}
+              maxLength={2}
+              onChangeText={(text) => handleBlocksDivided(text)}
+              keyboardType='number-pad'
+              value={blocksDivided}
+            />
+            <TouchableOpacity style={styles.addButon} onPress={() => setIsBlocksDivided(true)}>
+                <FontAwesomeIcon icon={ faDivide } size={20} color={'#fff'}/>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.row}>
+            <Text style={[styles.label2, {flex: 1}]}>Intervalo en segundos entre cada bloque:</Text>
+            <TextInput
+              style={styles.filterInput}
+              placeholder={'1'}
+              maxLength={2}
+              onChangeText={(text) => handleBlocksInterval(text)}
+              keyboardType='number-pad'
+              value={blocksInterval}
+            />
+            <TouchableOpacity style={styles.addButon} onPress={() => setIsBlocksDivided(true)}>
+                <FontAwesomeIcon icon={ faStopwatch } size={20} color={'#fff'}/>
+            </TouchableOpacity>
+          </View> */}
+
+          <Text style={styles.label2}>Agregar número al final de la lista:</Text>
+          <View style={styles.row}>
+            <TextInput
+              style={styles.contactsInput}
+              maxLength={15}
+              placeholder={'Phone number'}
+              onChangeText={(text) => setPhone(text)}
+              keyboardType='phone-pad'
+              value={phone}
+            />
+            <TouchableOpacity style={styles.addButon} onPress={() => onAddPhoneNumber()}>
+                <FontAwesomeIcon icon={ faPlus } size={20} color={'#fff'}/>
+            </TouchableOpacity>
+          </View>
           </>
         }
+        <View style={styles.card}>
+        {
+          manualContacts.length > 0 &&
+          manualContacts.map((contact, index) => {
+              return(
+                <View key={index} style={styles.row}>
+                  <Text style={styles.label2}>{contact}</Text>
+                  <TouchableOpacity onPress={() => onDropPhoneNumber({contact})}>
+                    <FontAwesomeIcon icon={ faTrash } size={20} color={'red'}/>
+                  </TouchableOpacity>
+                </View>
+              )
+            }
+          )
+        }
+        </View>
         {
           timeInterval !== '' && isSetTime &&
           <Text style={styles.label2}>Tiempo estimado de envío: {calculateTime()}</Text>
         }
 
-        <View style={{alignSelf: 'flex-end', marginTop: 15}}>
-          <Text style={styles.label}>Destinatarios: {globalContext.contacts.length}</Text>
-        </View>
+        <ContactsRecipients contacts={globalContext.contacts}/>
 
         <Text style={styles.label}>Mensaje:</Text>
         <TextInput
@@ -412,6 +514,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#27DB7E'
+  },
+  card: {
+    backgroundColor: 'lightgray',
+    borderRadius: 15,
+    paddingHorizontal: '4%'
   },
   filterInput: {
     color: 'blue',
