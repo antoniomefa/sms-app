@@ -13,8 +13,11 @@ import {check, request, RESULTS, PERMISSIONS} from 'react-native-permissions';
 import { PermissionsAndroid } from 'react-native';
 import Contacts from 'react-native-contacts';
 import SmsAndroid from 'react-native-get-sms-android';
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
-import { faCaretDown, faCaretUp, faFilter, faPlus, faStopwatch, faTrash } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { faCaretDown, faCaretUp, faFilter, faPlus, faStopwatch, faTrash } from '@fortawesome/free-solid-svg-icons';
+import {AdView} from './components/ads/AdView';
+import List from './components/ads/List';
+import {routes} from './components/ads/utils';
 
 import Loading from './components/Loading';
 import ContactsRecipients from './components/ContactsRecipients';
@@ -243,7 +246,6 @@ export default function Home() {
 
   const handleSMS = async () => {
     try {
-      //const CONTACTOS_DE_PRUEBA = ['7445070063', '7445070063', '7445070063', '7445070063', '7445070063', '7445070063', '7445070063','7445070063', '7445070063', '7445070063']
       setCounter(0);
       setErrorsCounter(0);
       await getSMSPermission();
@@ -304,6 +306,7 @@ export default function Home() {
     <SafeAreaView style={styles.container}>
       <View style={styles.form}>
         <Text style={styles.title}>ENVÍO MASIVO DE MENSAJES SMS</Text>
+        <AdView type="image" media={false} />
         <ScrollView>
         <TouchableOpacity style={styles.buton} onPress={() => {setIsLoading(true); setLoadingText('Leyendo contactos...'); clearData(); getContacts(); }}>
           <Text style={styles.textButon}>Leer contactos del teléfono</Text>
@@ -483,7 +486,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 10,
     alignSelf: 'center'
   },
   row: {

@@ -15,11 +15,13 @@
     "@fortawesome/react-native-fontawesome": "^0.2.6",
     "react": "17.0.1",
     "react-native": "0.64.0",
+    "react-native-admob-native-ads": "^0.4.1",
     "react-native-contacts": "^7.0.0",
     "react-native-get-sms-android": "^2.1.0",
     "react-native-permissions": "^3.0.2",
     "react-native-sms": "^1.11.0",
-    "react-native-svg": "^12.1.1"
+    "react-native-svg": "^12.1.1",
+    "react-native-vector-icons": "^8.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.13.16",
