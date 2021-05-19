@@ -1,5 +1,6 @@
 import React from 'react';
 import {StyleSheet, View, Text, ActivityIndicator, Modal} from 'react-native';
+import {AdView} from './ads/AdView';
 
 export default function Loading(props) {
   const {isVisible, text, counter, errors, total, isSending} = props;
@@ -25,7 +26,14 @@ export default function Loading(props) {
             {errors} Errores
           </Text>
         }
-       
+        {
+          isSending &&
+          <View
+            style={styles.card}>
+            <AdView type="image" media={true} />
+          </View>
+        }
+        
       </View>
     </Modal>
   );
@@ -43,4 +51,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginTop: 10,
   },
+  card: {
+    marginTop: '10%',
+    padding: '4%',
+    borderRadius: 15,
+    backgroundColor: '#fff'
+  }
 });
