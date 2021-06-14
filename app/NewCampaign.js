@@ -1,25 +1,12 @@
 import React, {useState, useContext, useEffect, useRef, useLayoutEffect} from 'react';
-import {
-  StyleSheet,
-  SafeAreaView,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Text,
-  TextInput,
-  Alert
-} from 'react-native';
+import { StyleSheet, SafeAreaView, View, ScrollView, TouchableOpacity, Text, TextInput, Alert } from 'react-native';
 import { check, request, RESULTS, PERMISSIONS } from 'react-native-permissions';
-import { PermissionsAndroid } from 'react-native';
-import Contacts from 'react-native-contacts';
 import SmsAndroid from 'react-native-get-sms-android';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faCaretDown, faCaretUp, faFilter, faPlus, faStopwatch, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 import { AdView } from './components/ads/AdView';
-import { routes } from './components/ads/utils';
-import { saveCampaign, getCampaign } from './store/CampaignStore';
-import List from './components/ads/List';
+import { saveCampaign } from './store/CampaignStore';
 import Loading from './components/Loading';
 import ContactsRecipients from './components/ContactsRecipients';
 import GlobalContext from './context/globalContext';
@@ -31,10 +18,6 @@ export default function NewCampaign({ route, navigation }) {
   const [minFilter, setMinFilter] = useState('');
   const [maxFilter, setMaxFilter] = useState('');
   const [timeInterval, setTimeInterval] = useState('1');
-  const [blocksDivided, setBlocksDivided] = useState('1');
-  const [blocksInterval, setBlocksInterval] = useState('0');
-  const [isBlocksDivided, setIsBlocksDivided] = useState(false);
-
   const [phone, setPhone] = useState('');
   const [manualContacts, setManualContacts] = useState([]);
   const [message, setMessage] = useState('');
@@ -46,12 +29,11 @@ export default function NewCampaign({ route, navigation }) {
   const [counter, setCounter] = useState(0);
   const [errorsCounter, setErrorsCounter] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
-  const [update, setUpdate] = useState(false);
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-          <TouchableOpacity style={styles.infoIcon} onPress={() => {clearData(); setMessage('');}}>
+          <TouchableOpacity onPress={() => {clearData(); setMessage('');}}>
             <Text style={styles.textTopBar}>Limpiar datos</Text>
           </TouchableOpacity>
       ),
@@ -59,37 +41,23 @@ export default function NewCampaign({ route, navigation }) {
   }, [navigation]);
 
   useEffect(() => {
+    clearData();
+    const prevCampaign = route.params;
     (async () => {
-      const campaigns = await getCampaign();
-      if (campaigns) { 
-        await globalContext.setCampaigns(campaigns)
+      if(prevCampaign.recipients) {
+        await globalContext.setContacts(prevCampaign.recipients)
+      }
+      if(prevCampaign.manualContacts) {
+        setManualContacts(prevCampaign.manualContacts)
+      }
+      if(prevCampaign.timeInterval) {
+        setTimeInterval(prevCampaign.timeInterval)
+      }
+      if(prevCampaign.message) {
+        setMessage(prevCampaign.message)
       }
     })()
-  }, [update])
-
-  const getContactsPermission = async () => {
-    try {
-      const checkPermission = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
-        {
-          'title': 'Contactos',
-          'message': 'Esta App requiere acceso a tu lista de contactos.',
-          'buttonPositive': 'Aceptar'
-        }
-      );
-      switch (checkPermission) {
-        case RESULTS.DENIED:
-          const requestResult = await request(PERMISSIONS.ANDROID.READ_CONTACTS);
-          return Promise.resolve(requestResult);
-        case RESULTS.GRANTED:
-          return Promise.resolve(checkPermission);
-        default:
-          return Promise.reject();
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  }
+  }, [])
 
   const getSMSPermission = async () => {
     try {
@@ -108,37 +76,6 @@ export default function NewCampaign({ route, navigation }) {
       Alert.alert('No tienes permisos de SMS','No se han otorgado permisos para acceder al envío y lectura de SMS del dispositivo.');
     }
   };
-
-  const getContacts = async () => {
-    try {
-      await getContactsPermission();
-      Contacts.getAll().then(async (contacts) => {
-        if (contacts.length > 0) {
-          let phonesArray = [];
-          for (let i=0; i<=contacts.length-1; i++){
-            if (contacts[i].phoneNumbers.length == 1) {
-              if (contacts[i].phoneNumbers[0].number.length > 9) {
-                phonesArray.push(contacts[i].phoneNumbers[0].number)
-              }
-            }
-            if (contacts[i].phoneNumbers.length > 1) {
-              for (let j=0; j<=contacts[i].phoneNumbers.length-1; j++) {
-                if (contacts[i].phoneNumbers[j].number.length > 9) {
-                  phonesArray.push(contacts[i].phoneNumbers[j].number)
-                }
-              }
-            }
-            await globalContext.setContacts(phonesArray);
-            setIsLoading(false);
-            setMoreOptions(false);
-          }
-        }
-      })
-    } catch (err) {
-      console.log(err);
-      setIsLoading(false);
-    }
-  }
 
   const calculateTime = () => {
     let interval = parseInt(timeInterval);
@@ -164,28 +101,6 @@ export default function NewCampaign({ route, navigation }) {
     setTimeInterval(time)
   }
 
-  const handleBlocksInterval = (time) => {
-    setIsBlocksDivided(false);
-    let interval = parseInt(time);
-    if (time == '' || time.length < 1) {
-      setBlocksInterval('0')
-    } else if (!Number.isInteger(interval)) {
-      time = '0';
-    }
-    setBlocksInterval(time)
-  }
-
-  const handleBlocksDivided = (blocks) => {
-    setIsBlocksDivided(false);
-    let blocksNumber = parseInt(blocks);
-    if (blocks == '' || blocks.length < 1) {
-      setBlocksDivided('1')
-    } else if (!Number.isInteger(blocksNumber)) {
-      blocks = '1';
-    }
-    setBlocksDivided(blocks)
-  }
-
   const validatePhoneNumber = (number) => {
     const regex1 = /^\(?(\d{3})\)?[- ]?(\d{3})[- ]?(\d{4})$/;
     const regex2 = /^\(?(\d{3})\)?[- ]?(\d{4})[- ]?(\d{3})$/;
@@ -198,7 +113,7 @@ export default function NewCampaign({ route, navigation }) {
     return result;
   }
 
-  const onAddPhoneNumber = async () => {
+  const onAddPhoneNumber = () => {
     let contactsTemp = manualContacts;
     let tempArray = globalContext.contacts;
     if(phone.length < 10) {
@@ -246,7 +161,7 @@ export default function NewCampaign({ route, navigation }) {
     }
   }
 
-  const onSendSMS = async () => {
+  const onSendSMS = () => {
     if (globalContext.contacts.length < 1 || message.length < 1) {
       Alert.alert('Falta información', 'Agrega por lo menos un destinatario y escribe el mensaje a enviar.')
     } else {
@@ -269,11 +184,8 @@ export default function NewCampaign({ route, navigation }) {
 
   const handleSMS = async () => {
     try {
-      setCounter(0);
-      setErrorsCounter(0);
       await getSMSPermission();
-      await sendSMS()
-      await updateCampaigns();
+      await sendSMS();
     } catch (err) {
       console.log(err);
       Alert.alert('Error de envío');
@@ -283,29 +195,11 @@ export default function NewCampaign({ route, navigation }) {
     }
   };
 
-  const updateCampaigns = async () => {
-    let tempCampaigns = globalContext.campaigns;
-    const date = new Date();
-    const campaign = {
-      id: date.getTime(),
-      name,
-      recipients: globalContext.contacts,
-      manualContacts,
-      timeInterval,
-      message, 
-      date: date.toLocaleDateString(),
-      counter,
-      errorsCounter
-    };
-    tempCampaigns.push(campaign);
-    await saveCampaign(tempCampaigns);
-    setUpdate(!update);
-    //navigation.navigate('Home')
-  };
-
   const sendSMS = async () => {
     let increment = 0;
     let interval = 1000 * parseInt(timeInterval);
+    let sentCounter = 0;
+    let sentErrors = 0;
     setIsFinished(false);
     setIsSending(true);
     setLoadingText('Enviando...');
@@ -316,25 +210,48 @@ export default function NewCampaign({ route, navigation }) {
         message,
         (fail) => {
           console.log('Failed with this error: ' + fail);
-          setErrorsCounter(errorsCounter => errorsCounter + 1);
+          sentErrors++;
+          setErrorsCounter(errors => errors + 1 );
         },
         (success) => {
-          setCounter(counter => counter + 1);
-          //console.log('SMS sent successfully');
+          sentCounter++;
+          setCounter(counter => counter + 1 );
         },
       );
       if (increment == globalContext.contacts.length-1) {
+        sentCounter++; // Contador sobeescrito debido al asincronismo del últuno success
         clearInterval(myLoop);
         setIsSending(false);
         setIsFinished(true);
         setIsLoading(false);
+        await updateCampaigns(sentCounter, sentErrors);
       }
       increment++;
     }, interval);
   };
 
-  const clearData = async () => {
-    await globalContext.setContacts([]);
+  const updateCampaigns = async (sentCounter, sentErrors) => {
+    let tempCampaigns = globalContext.campaigns;
+    const date = new Date();
+    const newCampaign = {
+      id: date.getTime(),
+      name,
+      recipients: globalContext.contacts,
+      manualContacts,
+      timeInterval,
+      message, 
+      counter: sentCounter,
+      errorsCounter: sentErrors,
+      date: date.toLocaleDateString(),
+      hour: date.toLocaleTimeString()
+    };
+    tempCampaigns.push(newCampaign);
+    saveCampaign(tempCampaigns);
+    globalContext.setUpdate(newCampaign);
+  };
+
+  const clearData =  () => {
+    globalContext.setContacts([]);
     setCounter(0);
     setErrorsCounter(0);
     setMinFilter('');
@@ -408,36 +325,6 @@ export default function NewCampaign({ route, navigation }) {
                 <FontAwesomeIcon icon={ faStopwatch } size={20} color={'#fff'}/>
             </TouchableOpacity>
           </View>
-
-         {/*  <View style={styles.row}>
-            <Text style={[styles.label2, {flex: 1}]}>Dividir los envíos en bloques:</Text>
-            <TextInput
-              style={styles.filterInput}
-              placeholder={'1'}
-              maxLength={2}
-              onChangeText={(text) => handleBlocksDivided(text)}
-              keyboardType='number-pad'
-              value={blocksDivided}
-            />
-            <TouchableOpacity style={styles.addButon} onPress={() => setIsBlocksDivided(true)}>
-                <FontAwesomeIcon icon={ faDivide } size={20} color={'#fff'}/>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={[styles.label2, {flex: 1}]}>Intervalo en segundos entre cada bloque:</Text>
-            <TextInput
-              style={styles.filterInput}
-              placeholder={'1'}
-              maxLength={2}
-              onChangeText={(text) => handleBlocksInterval(text)}
-              keyboardType='number-pad'
-              value={blocksInterval}
-            />
-            <TouchableOpacity style={styles.addButon} onPress={() => setIsBlocksDivided(true)}>
-                <FontAwesomeIcon icon={ faStopwatch } size={20} color={'#fff'}/>
-            </TouchableOpacity>
-          </View> */}
 
           <Text style={styles.label2}>Agregar número al final de la lista:</Text>
           <View style={styles.row}>

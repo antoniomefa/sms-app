@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 export default function CampaignItem({campaignData, setCampaignSelected, setIsVisibleModal}) {
 
-    const onCovenantSelected = () => {
+    const onCampaignSelected = () => {
         setCampaignSelected(campaignData)
         setIsVisibleModal(true)
     }
@@ -11,15 +11,16 @@ export default function CampaignItem({campaignData, setCampaignSelected, setIsVi
     return (
         <TouchableOpacity 
             style={[styles.container]}
-            onPress={() => onCovenantSelected()}
+            onPress={() => onCampaignSelected()}
         >
             <View style={styles.infoRow}>
                 <Text style={[styles.titleText]}>{campaignData.name}</Text>
-                <Text style={[styles.descriptionText]}>{campaignData.date}</Text>
+                <Text style={[styles.titleText]}>{campaignData.recipients.length} contactos</Text>
             </View>
-            <Text style={[styles.descriptionText]}>{campaignData.recipients.length} contactos</Text>
-            <Text style={[styles.descriptionText]}>{campaignData.counter} mensajes enviados</Text>
-            <Text style={[styles.descriptionText]}>{campaignData.errorsCounter} mensajes no enviados</Text>
+            <View style={styles.infoRow}>
+                <Text style={[styles.descriptionText]}>{campaignData.date}</Text>
+                <Text style={[styles.descriptionText]}>{campaignData.hour}</Text>
+            </View>                
         </TouchableOpacity>
     )
 }
@@ -41,6 +42,7 @@ const styles=StyleSheet.create({
     },
     infoRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        marginVertical: '1%'
     }
 })

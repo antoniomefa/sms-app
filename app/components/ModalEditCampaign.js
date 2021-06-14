@@ -1,11 +1,8 @@
 import React from 'react';
-import { Text, View, ScrollView, StyleSheet, TouchableOpacity, Modal, Alert } from 'react-native';
-import { useTheme } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons'; 
-
+import { Text, View, StyleSheet, TouchableOpacity, Modal, Alert } from 'react-native';
 
 export default function ModalEditCampaign(props) {
-    const { isVisibleModal, setIsVisibleModal, campaignSelected, onDeleteCampaign} = props;
+    const { isVisibleModal, setIsVisibleModal, campaignSelected, onDeleteCampaign, navigation} = props;
 
     const handleDeleteCampaign = () => {
         Alert.alert('Eliminar Campaña', `Confirma que deseas eliminar ${campaignSelected.name}`,
@@ -29,17 +26,34 @@ export default function ModalEditCampaign(props) {
         >
             <View style={styles.baseBackgorund}>
                 <View style={[styles.modalContainer, {backgroundColor: '#fff'}]}>
-                    <ScrollView>
-                        <Text style={[styles.modalTitle]}>Campaña: {campaignSelected.name}</Text>
-
-                        <Text style={[styles.modalDescriptionText]}>Total de contactos: {campaignSelected.recipients.length}</Text>
-                        
-                    </ScrollView>
+                    <View style={{justifyContent: 'center'}}>
+                        <Text style={[styles.modalTitle]}>{campaignSelected.name}</Text>
+                        <Text style={[styles.modalDescriptionText]}>Fecha de envío: {campaignSelected.date} {campaignSelected.hour}</Text>
+                        <Text style={[styles.modalDescriptionText]}>Total de contactos:{`\t\t\t\t\t`}{campaignSelected.recipients.length}</Text>
+                        <Text style={[styles.modalDescriptionText]}>Mensajes enviados:{`\t\t\t\t`}{campaignSelected.counter}</Text>
+                        <Text style={[styles.modalDescriptionText]}>Mensajes no enviados: {campaignSelected.errorsCounter}</Text>
+                    </View>
                     <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                         <TouchableOpacity style={[styles.modalButton]} onPress={() => handleDeleteCampaign()}>
                             <Text style={[styles.modalButtonText, {color: 'red'}]}>Eliminar</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.modalButton]} onPress={() => setIsVisibleModal(false)}>
+                        <TouchableOpacity 
+                            style={[styles.modalButton]}
+                            onPress={() => {
+                                setIsVisibleModal(false);
+                                navigation.navigate('New-Campaign', {
+                                    id: campaignSelected.id,
+                                    name: campaignSelected.name,
+                                    recipients: campaignSelected.recipients,
+                                    manualContacts: campaignSelected.manualContacts,
+                                    timeInterval: campaignSelected.timeInterval,
+                                    message: campaignSelected.message, 
+                                    counter: campaignSelected.counter,
+                                    errorsCounter: campaignSelected.errorsCounter,
+                                    date: campaignSelected.date,
+                                    hour: campaignSelected.hour
+                                })}}
+                        >
                             <Text style={[styles.modalButtonText, {color: '#27DB7E'}]}>Reenviar</Text>
                         </TouchableOpacity>
                     </View>

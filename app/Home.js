@@ -1,44 +1,36 @@
 import React, {useState, useContext, useEffect} from 'react';
-import {
-  StyleSheet,
-  SafeAreaView,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Text,
-  TextInput,
-  Alert,
-  FlatList
-} from 'react-native';
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faCaretDown, faCaretUp, faFilter, faPlus, faStopwatch, faTrash } from '@fortawesome/free-solid-svg-icons';
-import {AdView} from './components/ads/AdView';
-import List from './components/ads/List';
+import { StyleSheet, SafeAreaView, View, TouchableOpacity, Text, FlatList } from 'react-native';
+import { AdView } from './components/ads/AdView';
+import SplashScreen from 'react-native-splash-screen';
 import ModalEditCampaign from './components/ModalEditCampaign';
 import ModalNewCampaign from './components/ModalNewCampaign';
 import CampaignItem from './components/CampaignItem';
 import Loading from './components/Loading';
-import { getCampaign, deleteCampaign, saveCampaign } from './store/CampaignStore';
+import { getCampaign, saveCampaign } from './store/CampaignStore';
 import GlobalContext from './context/globalContext';
 
 export default function Home({navigation}) {
   const globalContext = useContext(GlobalContext);
-  const [update, setUpdate] = useState('');
   const [campaignSelected, setCampaignSelected] = useState({});
   const [isVisibleModal, setIsVisibleModal] = useState(false);
   const [isNewCampaign, setIsNewCampaign] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState('Cargando...');
+  const [loadingText, setLoadingText] = useState('Cargando campañas...');
 
   useEffect(() => {
     (async () => {
+      setIsLoading(true);
       let campaigns = await getCampaign();
       if (campaigns) {
         await globalContext.setCampaigns(campaigns);
       }
-      console.log('Campañas actualizadas')
+      setIsLoading(false);
     })()
-  }, [update])
+  }, [globalContext.update])
+
+  useEffect(() => {
+    SplashScreen.hide();
+  });
 
   const onDeleteCampaign = async () => {
     let result = globalContext.campaigns;
@@ -89,10 +81,6 @@ export default function Home({navigation}) {
         <Loading 
           isVisible={true} 
           text={loadingText} 
-          counter={counter}
-          errors={errorsCounter}
-          total={globalContext.contacts.length}
-          isSending={isSending}
         />
       }
       {
@@ -102,6 +90,7 @@ export default function Home({navigation}) {
           setIsVisibleModal={setIsVisibleModal}
           campaignSelected={campaignSelected}
           onDeleteCampaign={onDeleteCampaign}
+          navigation={navigation}
         />
       }
       {
